@@ -325,21 +325,23 @@ function Dashboard({ applications }) {
         ) : (
 
           <div className="empty-state">
+  <div className="empty-state-icon">📋</div>
 
-            <div className="empty-state-icon">
-              📋
-            </div>
+  <h3>No Applications Yet</h3>
 
-            <h3>
-              No Applications Yet
-            </h3>
+  <p>
+    Start tracking your job search by adding your first
+    job or internship application.
+  </p>
 
-            <p>
-              Start adding applications to see your
-              dashboard analytics.
-            </p>
-
-          </div>
+  <button
+    type="button"
+    className="add-button"
+    onClick={() => navigate("/applications/new")}
+  >
+    + Add Your First Application
+  </button>
+</div>
 
         )}
 

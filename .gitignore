@@ -22,3 +22,16 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Spring Boot / Maven
+target/
+
+# IDE files
+.classpath
+.project
+.settings/

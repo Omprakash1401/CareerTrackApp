@@ -1,11 +1,15 @@
 import React, { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { updateApplication } from "../services/applicationService";
+import { getErrorMessage } from "../services/errorHandler";
 
 function EditApplication({ applications, setApplications, setMessage }) {
 
   const navigate = useNavigate();
 
   const { id } = useParams();
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const application = applications.find(
   (application) => application.id.toString() === id
@@ -104,33 +108,42 @@ if (!application) {
   return Object.keys(newErrors).length === 0;
 };
 
-  const handleSubmit = (event) => {
 
-    event.preventDefault();
+const handleSubmit = async (event) => {
+  event.preventDefault();
 
-      const isValid = validateForm();
+  if (isSubmitting || !validateForm()) return;
 
-        if (!isValid) {
-          return;
-        }
+  setIsSubmitting(true);
 
-    const updatedApplication = {
-      id: application.id,
-      ...formData
-    };
+  try {
+    const savedApplication = await updateApplication(
+      id,
+      formData
+    );
 
     setApplications((previousApplications) =>
-      previousApplications.map((app) =>
-        app.id === application.id
-          ? updatedApplication
-          : app
+      previousApplications.map((item) =>
+        String(item.id) === id ? savedApplication : item
       )
     );
 
     setMessage("Application updated successfully!");
-
     navigate("/applications");
-  };
+  } catch (error) {
+    console.error("Failed to update application:", error);
+
+    setMessage(
+      getErrorMessage(
+        error,
+        "Failed to update application. Please try again."
+      )
+    );
+  } finally {
+    setIsSubmitting(false);
+  }
+};
+
 
   return (
   <div className="edit-page">
@@ -328,8 +341,9 @@ if (!application) {
             <button
               type="submit"
               className="add-button"
+              disabled={isSubmitting}
             >
-              Update Application
+              {isSubmitting ? "Saving Changes..." : "Update Application"}
             </button>
 
           </div>

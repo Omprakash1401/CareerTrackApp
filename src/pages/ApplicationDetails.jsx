@@ -1,30 +1,79 @@
-import React from "react";
+import React,{ useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import StatusBadge from "../components/StatusBadge";
+import { getApplicationById } from "../services/applicationService";
 
-function ApplicationDetails({ applications }) {
 
+function ApplicationDetails() {
+  const { id } = useParams();
   const navigate = useNavigate();
 
-  const { id } = useParams();
+  const [application, setApplication] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  const application = applications.find(
-    (application) => application.id.toString() === id
-  );
+  useEffect(() => {
+    let cancelled = false;
 
-  if (!application) {
+    const fetchApplication = async () => {
+      setLoading(true);
+      setError("");
+
+      try {
+        const data = await getApplicationById(id);
+
+        if (!cancelled) {
+          setApplication(data);
+        }
+      } catch (err) {
+  console.error("Failed to fetch application:", err);
+
+  if (!cancelled) {
+    const status = err.response?.status;
+
+    if (status === 404) {
+      setError("This application was not found.");
+    } else if (!err.response) {
+      setError(
+        "Unable to connect to the server. Please try again."
+      );
+    } else {
+      setError(
+        "Unable to load this application. Please try again."
+      );
+    }
+  }
+} finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchApplication();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
+
+  if (loading) {
+    return <p>Loading application details...</p>;
+  }
+
+  if (error) {
     return (
       <div>
-        <h1>Application Not Found</h1>
-
-        <button
-          onClick={() => navigate("/applications")}
-        >
+        <h2>Application Not Found</h2>
+        <p>{error}</p>
+        <button onClick={() => navigate("/applications")}>
           Back to Applications
         </button>
       </div>
     );
   }
+
+
 
   return (
     <div>

@@ -1,8 +1,11 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { createApplication } from "../services/applicationService";
+import { getErrorMessage } from "../services/errorHandler";
 
 function AddApplication({ setApplications,setMessage })  {
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
 
   const handleChange = (event) => {
@@ -19,82 +22,91 @@ function AddApplication({ setApplications,setMessage })  {
   }));
 };
 
-  const validateForm = () => {
-    const newErrors = {};
+const validateForm = () => {
+  const newErrors = {};
 
-    // console.log("Selected date:", formData.applicationDate);
-
-    if (!formData.company.trim()) {
-      newErrors.company = "Company name is required.";
-    }
-
-    if (!formData.jobTitle.trim()) {
-     newErrors.jobTitle = "Job title is required.";
-    }
-
-    if (!formData.location.trim()) {
-      newErrors.location = "Location is required.";
-    }
-
-    if (!formData.applicationDate) {
-      newErrors.applicationDate = "Application date is required.";
-    } else {
-if (!formData.applicationDate) {
-  newErrors.applicationDate = "Application date is required.";
-} else {
-  const [year, month, day] = formData.applicationDate
-    .split("-")
-    .map(Number);
-
-  const selectedDate = new Date(year, month - 1, day);
-
-  const today = new Date();
-
-  today.setHours(0, 0, 0, 0);
-
-  if (selectedDate > today) {
-    newErrors.applicationDate =
-      "Application date cannot be in the future.";
+  if (!formData.company.trim()) {
+    newErrors.company = "Company name is required.";
   }
-}
-    }
 
-    if (formData.jobUrl.trim()) {
-      try {
-        new URL(formData.jobUrl);
-      } catch {
-        newErrors.jobUrl = "Please enter a valid URL.";
+  if (!formData.jobTitle.trim()) {
+    newErrors.jobTitle = "Job title is required.";
+  }
+
+  if (!formData.location.trim()) {
+    newErrors.location = "Location is required.";
+  }
+
+  if (!formData.applicationDate) {
+    newErrors.applicationDate = "Application date is required.";
+  } else {
+    const selectedDate = new Date(
+      `${formData.applicationDate}T00:00:00`
+    );
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (
+      Number.isNaN(selectedDate.getTime()) ||
+      selectedDate > today
+    ) {
+      newErrors.applicationDate =
+        "Enter a valid date that is not in the future.";
+    }
+  }
+
+  if (formData.jobUrl.trim()) {
+    try {
+      const url = new URL(formData.jobUrl);
+
+      if (!["http:", "https:"].includes(url.protocol)) {
+        newErrors.jobUrl = "URL must start with http:// or https://.";
       }
+    } catch {
+      newErrors.jobUrl = "Please enter a valid URL.";
     }
+  }
 
-    setErrors(newErrors);
+  setErrors(newErrors);
 
-    return Object.keys(newErrors).length === 0;
-  };
+  return Object.keys(newErrors).length === 0;
+};
 
-  const handleSubmit = (event) => {
+
+const handleSubmit = async (event) => {
   event.preventDefault();
 
   const isValid = validateForm();
+  if (!isValid) return;
 
-  if (!isValid) {
-    return;
-  }
+  setIsSubmitting(true);
 
-  const newApplication = {
-    id: Date.now(),
-    ...formData
-  };
+  try {
+    const savedApplication = await createApplication(formData);
 
-  setApplications((previousApplications) => [
-    ...previousApplications,
-    newApplication
-  ]);
+    setApplications((previousApplications) => [
+      ...previousApplications,
+      savedApplication
+    ]);
 
-  setMessage("Application added successfully!");
+    setMessage("Application added successfully!");
+    navigate("/applications");
+  } catch (error) {
+  console.error("Failed to create application:", error);
 
-  navigate("/applications");
+  setMessage(
+    getErrorMessage(
+      error,
+      "Failed to save application. Please try again."
+    )
+  );
+}
+  finally {
+  setIsSubmitting(false);
+}
 };
+
 
   const [formData, setFormData] = useState({
     company: "",
@@ -153,7 +165,7 @@ if (!formData.applicationDate) {
         </div>
 
         <div className="form-group">
-          <label>Location</label>
+          <label>Location *</label>
 
           <input
   type="text"
@@ -290,11 +302,8 @@ if (!formData.applicationDate) {
             Cancel
           </button>
 
-          <button
-            type="submit"
-            className="add-button"
-          >
-            Add Application
+          <button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? "Saving..." : "Add Application"}
           </button>
 
         </div>
